@@ -3902,34 +3902,48 @@ var fs = __importStar(__nccwpck_require__(747));
 var readline = __importStar(__nccwpck_require__(58));
 var clipboardy = __importStar(__nccwpck_require__(719));
 var main = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var fileName, fileContents, filters, parameters, _a, sqlQuery, error_1;
-    return __generator(this, function (_b) {
-        switch (_b.label) {
+    var fileName, fileContents, filters, parameters, sqlQuery, error_1;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
             case 0:
-                _b.trys.push([0, 4, , 5]);
+                _a.trys.push([0, 2, , 3]);
                 fileName = process.argv[2];
                 if (!fileName)
                     throw new Error('No file provided in command line arguments.');
-                fileContents = fs.readFileSync(fileName).toString();
+                fileContents = fs.readFileSync(fileName).toString().replace(/{% pdftemplate (\S+) %}/, '');
                 filters = parseFiltersFromQuery(fileContents);
-                if (!process.argv[3]) return [3 /*break*/, 1];
-                _a = JSON.parse(process.argv[3]);
+                return [4 /*yield*/, getParameters(filters)];
+            case 1:
+                parameters = _a.sent();
+                sqlQuery = replaceFileVariables(fileContents, parameters);
+                clipboardy.writeSync(removeExtraWhitespace(sqlQuery));
+                console.log('Query has been copied to the clipboard.');
+                return [3 /*break*/, 3];
+            case 2:
+                error_1 = _a.sent();
+                console.error('An error occurred: ' + error_1);
+                return [3 /*break*/, 3];
+            case 3: return [2 /*return*/];
+        }
+    });
+}); };
+var getParameters = function (filters) { return __awaiter(void 0, void 0, void 0, function () {
+    var _a;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                if (!(process.argv.slice(3).length > 0)) return [3 /*break*/, 1];
+                _a = process.argv.slice(3).reduce(function (acc, argv) {
+                    var components = argv.split('=');
+                    acc[components[0]] = components[1];
+                    return acc;
+                }, {});
                 return [3 /*break*/, 3];
             case 1: return [4 /*yield*/, getUserFilterValues(filters)];
             case 2:
                 _a = _b.sent();
                 _b.label = 3;
-            case 3:
-                parameters = _a;
-                sqlQuery = replaceFileVariables(fileContents, parameters);
-                clipboardy.writeSync(removeExtraWhitespace(sqlQuery));
-                console.log('Query has been copied to the clipboard.');
-                return [3 /*break*/, 5];
-            case 4:
-                error_1 = _b.sent();
-                console.error('An error occurred: ' + error_1);
-                return [3 /*break*/, 5];
-            case 5: return [2 /*return*/];
+            case 3: return [2 /*return*/, _a];
         }
     });
 }); };
@@ -3978,32 +3992,29 @@ var getUserInput = function (reader, question) {
  * @returns - object containing filter name, type, and optional source (select fields only)
  */
 var parseFiltersFromQuery = function (text) {
-    var _a;
-    var regex = /{% if (\S+) (\S+) %}/g;
+    var regexes = [/{% if (\S+) (\S+) %}/g, /{{(\S+)}}/g];
     var resultIndices = {
         filterKey: 1,
-        fieldType: 2,
     };
     var parsedFilters = [];
-    var _loop_1 = function () {
-        var results = regex.exec(text);
-        if (!results)
-            return "break";
-        var matchingFilters = parsedFilters.filter(function (filter) { return filter.fieldName === results[resultIndices.filterKey]; });
-        if (matchingFilters.length > 0)
-            return "continue";
-        var fieldTypeSource = results[resultIndices.fieldType].split('|');
-        parsedFilters.push({
-            fieldName: results[resultIndices.filterKey],
-            fieldType: fieldTypeSource[0],
-            fieldSource: (_a = fieldTypeSource[1]) !== null && _a !== void 0 ? _a : undefined,
-        });
-    };
-    while (true) {
-        var state_1 = _loop_1();
-        if (state_1 === "break")
-            break;
-    }
+    regexes.forEach(function (regex) {
+        var _loop_1 = function () {
+            var results = regex.exec(text);
+            if (!results)
+                return "break";
+            var matchingFilters = parsedFilters.filter(function (filter) { return filter.fieldName === results[resultIndices.filterKey]; });
+            if (matchingFilters.length > 0)
+                return "continue";
+            parsedFilters.push({
+                fieldName: results[resultIndices.filterKey],
+            });
+        };
+        while (true) {
+            var state_1 = _loop_1();
+            if (state_1 === "break")
+                break;
+        }
+    });
     return parsedFilters;
 };
 /**

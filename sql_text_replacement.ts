@@ -18,7 +18,7 @@ const main = async () => {
   try {
     const fileName = process.argv[2];
     if (!fileName) throw new Error('No file provided in command line arguments.');
-    const fileContents = fs.readFileSync(fileName).toString();
+    const fileContents = fs.readFileSync(fileName).toString().replace(/{% pdftemplate (\S+) %}/,'');
     const filters = parseFiltersFromQuery(fileContents);
     const parameters = await getParameters(filters);
     const sqlQuery = replaceFileVariables(fileContents, parameters);

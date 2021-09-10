@@ -68,7 +68,7 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
                 fileName = process.argv[2];
                 if (!fileName)
                     throw new Error('No file provided in command line arguments.');
-                fileContents = fs.readFileSync(fileName).toString();
+                fileContents = fs.readFileSync(fileName).toString().replace(/{% pdftemplate (\S+) %}/, '');
                 filters = parseFiltersFromQuery(fileContents);
                 return [4 /*yield*/, getParameters(filters)];
             case 1:
